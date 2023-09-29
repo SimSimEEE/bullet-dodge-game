@@ -1,0 +1,9 @@
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    z-index: 9999; /* 모달을 가장 위에 표시 */
+    padding: 20px;
+}

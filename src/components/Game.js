@@ -9,8 +9,8 @@ class Game extends Component {
         super(props);
         this.canvasRef = React.createRef();
         this.state = {
-            canvasWidth: 500,
-            canvasHeight: 500,
+            canvasWidth: 300,
+            canvasHeight: 300,
             playerX: 250,
             playerY: 250,
             bombs: [],

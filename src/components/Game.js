@@ -9,8 +9,8 @@ class Game extends Component {
         super(props);
         this.canvasRef = React.createRef();
         this.state = {
-            canvasWidth: 300,
-            canvasHeight: 300,
+            canvasWidth: 500,
+            canvasHeight: 500,
             playerX: 250,
             playerY: 250,
             bombs: [],
@@ -52,14 +52,14 @@ class Game extends Component {
         const ctx = canvas.getContext("2d");
         canvas.addEventListener("mousemove", this.handleMouseMove);
         const { canvasWidth, canvasHeight } = this.state;
-        const scale = window.devicePixelRatio;
+        const scale = 1;
         canvas.width = canvasWidth * scale;
         canvas.height = canvasHeight * scale;
         canvas.style.width = canvasWidth + "px";
         canvas.style.height = canvasHeight + "px";
         ctx.strokeStyle = "black";
         ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, canvasWidth * scale, canvasHeight * scale);
+        ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
         const bombs = [];
         for (let i = 0; i < 5; i++) {
             bombs.push(new Bomb(canvasWidth, canvasHeight));
@@ -138,7 +138,7 @@ class Game extends Component {
             }
         });
         ctx.fillStyle = "rgba(22, 22, 22, 0.9)";
-        ctx.fillRect(playerX - 20, playerY - 20, 40, 40);
+        ctx.fillRect(playerX - 20, playerY - 20, canvas.width / 20, canvas.height / 20);
 
         // 시간 표시
         this.gameTimer.drawTime(ctx);

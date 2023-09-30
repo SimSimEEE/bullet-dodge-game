@@ -11,7 +11,7 @@ class Bomb {
     minVector = 1;
     maxVentor = 5;
 
-    constructor(canvasWidth, canvasHeight, size = 10, vector = 1) {
+    constructor(canvasWidth, canvasHeight, size = canvasWidth / 50, vector = 1) {
         this.xPos = randomItemInArray([0, canvasWidth]);
         this.yPos = randomItemInArray([0, canvasHeight]);
         this.size = size;

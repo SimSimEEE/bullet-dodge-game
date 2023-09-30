@@ -12,8 +12,8 @@ class Bomb {
     maxVentor = 5;
 
     constructor(canvasWidth, canvasHeight, size = 10, vector = 1) {
-        this.xPos = randomItemInArray([0, canvasWidth + 55]);
-        this.yPos = randomItemInArray([0, canvasHeight + 55]);
+        this.xPos = randomItemInArray([0, canvasWidth]);
+        this.yPos = randomItemInArray([0, canvasHeight]);
         this.size = size;
         this.xVector = vector;
         this.yVector = vector;
@@ -62,7 +62,6 @@ class Bomb {
         const yCollision = this.yPos > playerY - 20 && this.yPos < playerY + 20;
         return xCollision && yCollision;
     }
-    
 }
 
 export default Bomb;

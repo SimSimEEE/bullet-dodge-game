@@ -96,9 +96,9 @@ class Game extends Component {
             bomb.yPos += bomb.yVector;
             if (
                 bomb.xPos < 0 ||
-                bomb.xPos > canvasWidth + bomb.size ||
+                bomb.xPos > canvasWidth + bomb.size * 10 ||
                 bomb.yPos < 0 ||
-                bomb.yPos > canvasHeight + bomb.size
+                bomb.yPos > canvasHeight + bomb.size * 10
             ) {
                 bomb.xPos = randomItemInArray([0, canvasWidth]);
                 bomb.yPos = randomItemInArray([0, canvasHeight]);

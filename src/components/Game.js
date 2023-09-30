@@ -4,6 +4,7 @@ import GameTimer from "./GameTimer";
 import { randomItemInArray } from "./utils";
 import Modal from "react-modal";
 import "./Game.css";
+
 class Game extends Component {
     constructor(props) {
         super(props);
@@ -15,8 +16,12 @@ class Game extends Component {
             playerY: 250,
             bombs: [],
             isGameOver: false,
-            playerExploding: false, // 플레이어 폭발 애니메이션 상태
-            playerExplosionTriangles: [], // 폭팔 애니메이션 삼각형들의 정보를 저장하는 배열
+            playerExploding: false,
+            playerExplosionTriangles: [],
+            bombSlowDuration: 1000, // 폭탄 느리게 하는 기간 (1초)
+            isBombSlow: false, // 폭탄 느리게 하는 상태
+            bombSlowCooldown: 3000, // 폭탄 느려짐 재사용 대기 시간 (10초)
+            canUseBombSlow: true, // 폭탄 느려짐 사용 가능 여부
         };
         this.ctx = null;
         this.drawAnimation = null;
@@ -26,33 +31,36 @@ class Game extends Component {
     componentDidMount() {
         this.initializeCanvas();
         this.gameLoop();
-        this.startAddingBombs(); // 5초마다 폭탄 추가 시작
-
-        const canvas = this.canvasRef.current;
-        canvas.style.cursor = "none"; // 마우스 커서 숨기기
+        this.startAddingBombs();
+        this.setupCanvasMouseInteraction();
+        this.drawInvulnerabilityCount();
     }
 
     componentWillUnmount() {
+        clearInterval(this.bombInterval);
+        cancelAnimationFrame(this.drawAnimation);
+    }
+
+    setupCanvasMouseInteraction() {
         const canvas = this.canvasRef.current;
-        canvas.removeEventListener("mousemove", this.handleMouseMove);
-        clearInterval(this.bombInterval); // 컴포넌트가 언마운트될 때 폭탄 추가 인터벌 제거
+        canvas.style.cursor = "none";
+        canvas.addEventListener("mousemove", this.handleMouseMove);
+        canvas.addEventListener("click", this.handleMouseClick);
     }
 
     startAddingBombs() {
         this.bombInterval = setInterval(() => {
             const { bombs } = this.state;
             if (bombs.length < 10) {
-                // 폭탄 개수 제한 (원하는 개수로 수정 가능)
                 bombs.push(new Bomb(this.state.canvasWidth, this.state.canvasHeight));
                 this.setState({ bombs });
             }
-        }, 5000); // 5초마다 폭탄 추가
+        }, 1000);
     }
 
     initializeCanvas() {
         const canvas = this.canvasRef.current;
         const ctx = canvas.getContext("2d");
-        canvas.addEventListener("mousemove", this.handleMouseMove);
         const { canvasWidth, canvasHeight } = this.state;
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
@@ -61,6 +69,8 @@ class Game extends Component {
         ctx.strokeStyle = "black";
         ctx.lineWidth = 2;
         ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
+
+        // 초기에 몇 개의 폭탄을 생성해 놓음
         const bombs = [];
         for (let i = 0; i < 5; i++) {
             bombs.push(new Bomb(canvasWidth, canvasHeight));
@@ -70,7 +80,6 @@ class Game extends Component {
 
     handleMouseMove = (e) => {
         if (!this.state.isGameOver) {
-            const { canvasWidth, canvasHeight } = this.state;
             const canvas = this.canvasRef.current;
             const rect = canvas.getBoundingClientRect();
             const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -82,6 +91,22 @@ class Game extends Component {
         }
     };
 
+    handleMouseClick = () => {
+        if (!this.state.isGameOver && this.state.canUseBombSlow) {
+            // 게임이 종료되지 않았고, 폭탄 느려짐을 사용 가능하고 있는 경우
+            this.setState({ isBombSlow: true, canUseBombSlow: false });
+
+            setTimeout(() => {
+                this.setState({ isBombSlow: false });
+
+                // 폭탄 느려짐 사용 후 10초 뒤에 다시 사용 가능하도록 설정
+                setTimeout(() => {
+                    this.setState({ canUseBombSlow: true });
+                }, this.state.bombSlowCooldown);
+            }, this.state.bombSlowDuration);
+        }
+    };
+
     gameLoop = () => {
         this.updateGame();
         this.drawGame();
@@ -89,53 +114,46 @@ class Game extends Component {
     };
 
     updateGame = () => {
-        const { canvasWidth, canvasHeight, bombs } = this.state;
+        const { canvasWidth, canvasHeight, bombs, isBombSlow } = this.state;
         bombs.forEach((bomb) => {
-            bomb.xPos += bomb.xVector;
-            bomb.yPos += bomb.yVector;
+            // 폭탄들을 업데이트하고 화면 경계를 벗어난 폭탄을 재설정
+            bomb.xPos += isBombSlow ? bomb.xVector * 0.5 : bomb.xVector;
+            bomb.yPos += isBombSlow ? bomb.yVector * 0.5 : bomb.yVector;
+            bomb.checkFrame(canvasWidth, canvasHeight);
+
             if (
-                bomb.xPos < 0 ||
-                bomb.xPos > canvasWidth + bomb.size * 100 ||
-                bomb.yPos < 0 ||
-                bomb.yPos > canvasHeight + bomb.size * 100
+                !this.state.playerExploding &&
+                bomb.checkCollision(this.state.playerX, this.state.playerY)
             ) {
-                bomb.xPos = randomItemInArray([0, canvasWidth]);
-                bomb.yPos = randomItemInArray([0, canvasHeight]);
-                bomb.xVector = Math.random() * 4 - 2;
-                bomb.yVector = Math.random() * 4 - 2;
+                // 플레이어와 폭탄이 충돌하면 폭발 애니메이션 시작
+                this.startPlayerExplosion(this.state.playerX, this.state.playerY);
             }
         });
     };
 
     handleGameOver = () => {
+        // 게임 오버 상태로 전환
         this.setState({ isGameOver: true });
     };
 
     handleRestart = () => {
-        // 페이지 새로 고침
+        // 페이지를 다시 로드하여 게임을 재시작
         window.location.reload();
     };
 
-    // 폭팔 애니메이션을 시작하는 함수
     startPlayerExplosion(playerX, playerY) {
-        this.setState({ playerExploding: true }); // 폭팔 상태로 변경
-
+        this.setState({ playerExploding: true });
         const explosionTriangles = [];
         for (let i = 0; i < 8; i++) {
-            // 8개의 방향으로 삼각형 생성
-            const angle = (Math.PI / 4) * i; // 45도씩 회전
-            const speed = 2; // 삼각형의 속도
-            const size = 20; // 삼각형 크기
-
-            const xVector = Math.cos(angle) * speed; // 삼각형의 x 방향 속도
-            const yVector = Math.sin(angle) * speed; // 삼각형의 y 방향 속도
-
-            const x = playerX - size / 2; // 플레이어 사각형 중심에서 왼쪽으로 이동
-            const y = playerY - size / 2; // 플레이어 사각형 중심에서 위로 이동
-            const rotationCenterX = playerX; // 회전 중심 x 좌표 (플레이어 중심)
-            const rotationCenterY = playerY; // 회전 중심 y 좌표 (플레이어 중심)
-
-            // 회전 변환 적용
+            const angle = (Math.PI / 4) * i;
+            const speed = 2;
+            const size = 20;
+            const xVector = Math.cos(angle) * speed;
+            const yVector = Math.sin(angle) * speed;
+            const x = playerX - size / 2;
+            const y = playerY - size / 2;
+            const rotationCenterX = playerX;
+            const rotationCenterY = playerY;
             const rotatedX =
                 (x - rotationCenterX) * Math.cos(angle) -
                 (y - rotationCenterY) * Math.sin(angle) +
@@ -144,7 +162,6 @@ class Game extends Component {
                 (x - rotationCenterX) * Math.sin(angle) +
                 (y - rotationCenterY) * Math.cos(angle) +
                 rotationCenterY;
-
             explosionTriangles.push({
                 x: rotatedX,
                 y: rotatedY,
@@ -153,20 +170,50 @@ class Game extends Component {
                 size,
             });
         }
-
-        // 폭팔 애니메이션 삼각형 배열 설정
         this.setState({ playerExplosionTriangles: explosionTriangles });
 
-        // 일정 시간 후에 폭팔 애니메이션 종료 및 게임 오버 처리
+        // 폭발 애니메이션 후 게임 오버 처리
         setTimeout(() => {
             this.setState({ playerExplosionTriangles: [], playerExploding: false });
             this.handleGameOver();
-        }, 500); // 예: 1초 후에 게임 오버 처리
+        }, 500); // 0.5초 후에 게임 오버 처리
     }
 
+    // 무적 횟수 표시 함수
+    drawInvulnerabilityCount = () => {
+        const { canvasWidth } = this.state;
+        const canvas = this.canvasRef.current;
+        const ctx = canvas.getContext("2d");
+
+        // Clear the area before drawing the count
+        ctx.clearRect(canvasWidth - 200, 0, canvasWidth, 30);
+
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "black"; // Change text color to black
+        ctx.textAlign = "right";
+        ctx.fillText(`무적 횟수: ${this.state.invulnerabilityCount}`, canvasWidth - 10, 30);
+    };
+
+    drawElapsedTime = () => {
+        const canvas = this.canvasRef.current;
+        const ctx = canvas.getContext("2d");
+
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "black";
+        ctx.textAlign = "left";
+        ctx.fillText(`버틴 시간: ${this.gameTimer.getTime()}초`, 10, 30);
+    };
+
     drawGame = () => {
-        const { playerX, playerY, bombs, isGameOver, playerExploding, playerExplosionTriangles } =
-            this.state;
+        const {
+            playerX,
+            playerY,
+            bombs,
+            isGameOver,
+            playerExploding,
+            playerExplosionTriangles,
+            isBombSlow,
+        } = this.state;
         const canvas = this.canvasRef.current;
         const ctx = canvas.getContext("2d");
 
@@ -179,24 +226,20 @@ class Game extends Component {
 
         bombs.forEach((bomb) => {
             bomb.drawBomb(ctx);
-            bomb.xPos += bomb.xVector;
-            bomb.yPos += bomb.yVector;
+            bomb.xPos += isBombSlow ? bomb.xVector * 0.5 : bomb.xVector;
+            bomb.yPos += isBombSlow ? bomb.yVector * 0.5 : bomb.yVector;
             bomb.checkFrame(canvas.width, canvas.height);
-            if (!playerExploding && bomb.checkCollision(playerX, playerY)) {
-                // 플레이어 폭팔 애니메이션 시작
-                this.startPlayerExplosion(playerX, playerY);
-            }
         });
 
-        // 폭팔 애니메이션 그리기
-        if (playerExploding && isGameOver === false) {
+        // 폭발 애니메이션 그리기
+        if (playerExploding && !isGameOver) {
             playerExplosionTriangles.forEach((triangle) => {
                 ctx.fillStyle = "black";
                 ctx.beginPath();
 
-                const rotationCenterX = triangle.x; // 삼각형 중심 x 좌표
-                const rotationCenterY = triangle.y; // 삼각형 중심 y 좌표
-                const angle = Math.atan2(triangle.yVector, triangle.xVector); // 회전 각도 계산
+                const rotationCenterX = triangle.x;
+                const rotationCenterY = triangle.y;
+                const angle = Math.atan2(triangle.yVector, triangle.xVector);
 
                 // 회전된 좌표 계산
                 const rotatedX1 = triangle.x - (Math.cos(angle) * triangle.size) / 2;
@@ -216,22 +259,32 @@ class Game extends Component {
                 triangle.y += triangle.yVector;
             });
         } else {
-            // 시간 표시
+            // 게임이 종료되지 않았을 때만 시간과 플레이어를 그립니다.
             if (!isGameOver) {
                 this.gameTimer.drawTime(ctx);
 
                 // 플레이어 그리기
-                ctx.fillStyle = "rgba(22, 22, 22, 0.9)";
+                ctx.fillStyle = isBombSlow
+                    ? "rgba(22, 22, 22, 0.5)" // 폭탄 느려질 때는 반투명
+                    : "rgba(22, 22, 22, 0.9)";
                 ctx.fillRect(playerX - 20, playerY - 20, canvas.width / 20, canvas.height / 20);
             }
         }
     };
 
     render() {
-        const { canvasWidth, canvasHeight, isGameOver } = this.state;
+        const {
+            canvasWidth,
+            canvasHeight,
+            isGameOver,
+            isBombSlow,
+            bombSlowCooldown,
+            canUseBombSlow,
+        } = this.state;
         const elapsedTime = this.gameTimer.getTime();
 
         const canvasStyle = {
+            position: "relative",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -264,13 +317,49 @@ class Game extends Component {
                         height={canvasHeight}
                         style={{ border: "2px solid #000" }}
                     />
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: "10px",
+                            left: "10px",
+                            color: "white",
+                            zIndex: "1",
+                        }}
+                    >
+                        폭탄 느려짐:{" "}
+                        {isBombSlow
+                            ? "사용 중"
+                            : canUseBombSlow
+                            ? "사용 가능"
+                            : `쿨다운 중 (${Math.ceil(bombSlowCooldown / 1000)}초)`}
+                    </div>
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: "30px",
+                            left: "10px",
+                            color: "white",
+                            zIndex: "1",
+                        }}
+                    ></div>
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: "10px",
+                            right: "10px",
+                            color: "white",
+                            zIndex: "1",
+                        }}
+                    >
+                        경과 시간: {elapsedTime}초
+                    </div>
                 </div>
                 <Modal
                     isOpen={isGameOver}
                     onRequestClose={this.handleRestart}
                     contentLabel="Game Over"
                     style={modalStyle}
-                    shouldCloseOnOverlayClick={false} // 모달 외부 클릭으로 닫히지 않도록 설정
+                    shouldCloseOnOverlayClick={false}
                 >
                     <h2 style={{ color: "#e74c3c" }}>Game Over</h2>
                     <p>게임에서 버틴 시간: {elapsedTime}초</p>

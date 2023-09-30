@@ -1,9 +1,67 @@
-.modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    z-index: 9999; /* 모달을 가장 위에 표시 */
+/* Game.css */
+
+/* 게임 화면 스타일 */
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #3498db, #2980b9);
+}
+
+#canvas-container {
+    position: relative;
+}
+
+canvas {
+    border: 2px solid #000;
+    cursor: none;
+}
+
+/* 무적 횟수 표시 스타일 */
+#invulnerability-count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    color: white;
+}
+
+/* 모달 스타일 */
+.ReactModal__Overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.ReactModal__Content {
+    width: 300px;
+    text-align: center;
+    background: #fff;
     padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 게임 오버 메시지 스타일 */
+.GameOverMessage {
+    color: #e74c3c;
+    margin-bottom: 20px;
+}
+
+/* 재시작 버튼 스타일 */
+.RestartButton {
+    padding: 10px 20px;
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.RestartButton:hover {
+    background: #2980b9;
 }

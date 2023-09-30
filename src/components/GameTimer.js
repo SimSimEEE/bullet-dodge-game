@@ -11,10 +11,6 @@ class GameTimer {
 
     drawTime(ctx) {
         this.#updateTime();
-        ctx.beginPath();
-        ctx.font = "24px serif";
-        ctx.fillStyle = "black";
-        ctx.fillText(`${this.playTime}sec`, 20, 50);
     }
 
     #updateTime() {

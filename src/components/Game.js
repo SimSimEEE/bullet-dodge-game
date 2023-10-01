@@ -33,7 +33,6 @@ class Game extends Component {
         this.gameLoop();
         this.startAddingBombs();
         this.setupCanvasMouseInteraction();
-        this.drawInvulnerabilityCount();
     }
 
     componentWillUnmount() {
@@ -179,21 +178,6 @@ class Game extends Component {
         }, 500); // 0.5초 후에 게임 오버 처리
     }
 
-    // 무적 횟수 표시 함수
-    drawInvulnerabilityCount = () => {
-        const { canvasWidth } = this.state;
-        const canvas = this.canvasRef.current;
-        const ctx = canvas.getContext("2d");
-
-        // Clear the area before drawing the count
-        ctx.clearRect(canvasWidth - 200, 0, canvasWidth, 30);
-
-        ctx.font = "20px Arial";
-        ctx.fillStyle = "black"; // Change text color to black
-        ctx.textAlign = "right";
-        ctx.fillText(`무적 횟수: ${this.state.invulnerabilityCount}`, canvasWidth - 10, 30);
-    };
-
     drawElapsedTime = () => {
         const canvas = this.canvasRef.current;
         const ctx = canvas.getContext("2d");
@@ -217,6 +201,11 @@ class Game extends Component {
         const canvas = this.canvasRef.current;
         const ctx = canvas.getContext("2d");
 
+        if (!isBombSlow) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } // 캔버스를 지우고
+
+        // 배경색 설정
         ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -226,8 +215,8 @@ class Game extends Component {
 
         bombs.forEach((bomb) => {
             bomb.drawBomb(ctx);
-            bomb.xPos += isBombSlow ? bomb.xVector * 0.5 : bomb.xVector;
-            bomb.yPos += isBombSlow ? bomb.yVector * 0.5 : bomb.yVector;
+            bomb.xPos += isBombSlow ? bomb.xVector * 0.01 : bomb.xVector;
+            bomb.yPos += isBombSlow ? bomb.yVector * 0.01 : bomb.yVector;
             bomb.checkFrame(canvas.width, canvas.height);
         });
 
@@ -237,8 +226,6 @@ class Game extends Component {
                 ctx.fillStyle = "black";
                 ctx.beginPath();
 
-                const rotationCenterX = triangle.x;
-                const rotationCenterY = triangle.y;
                 const angle = Math.atan2(triangle.yVector, triangle.xVector);
 
                 // 회전된 좌표 계산
@@ -263,10 +250,7 @@ class Game extends Component {
             if (!isGameOver) {
                 this.gameTimer.drawTime(ctx);
 
-                // 플레이어 그리기
-                ctx.fillStyle = isBombSlow
-                    ? "rgba(22, 22, 22, 0.5)" // 폭탄 느려질 때는 반투명
-                    : "rgba(22, 22, 22, 0.9)";
+                ctx.fillStyle = "rgba(22, 22, 22, 0.5)";
                 ctx.fillRect(playerX - 20, playerY - 20, canvas.width / 20, canvas.height / 20);
             }
         }

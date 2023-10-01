@@ -54,7 +54,7 @@ class Game extends Component {
                 bombs.push(new Bomb(this.state.canvasWidth, this.state.canvasHeight));
                 this.setState({ bombs });
             }
-        }, 1000);
+        }, 3000);
     }
 
     initializeCanvas() {
@@ -203,7 +203,7 @@ class Game extends Component {
 
         if (!isBombSlow) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-        } // 캔버스를 지우고
+        }
 
         // 배경색 설정
         ctx.fillStyle = "rgba(255, 255, 255, 0.2)";

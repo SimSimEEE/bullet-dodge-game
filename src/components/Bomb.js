@@ -15,8 +15,8 @@ class Bomb {
         this.xPos = randomItemInArray([0, canvasWidth]);
         this.yPos = randomItemInArray([0, canvasHeight]);
         this.size = size;
-        this.xVector = (Math.random() * 4 - 2) * 2.5;
-        this.yVector = (Math.random() * 4 - 2) * 2.5;
+        this.xVector = (Math.random() * 4 - 2) * 1.5;
+        this.yVector = (Math.random() * 4 - 2) * 1.5;
     }
 
     drawBomb(ctx) {
